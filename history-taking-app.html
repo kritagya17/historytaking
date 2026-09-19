@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClinHistory — Adaptive History Taking & Case Presentation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#0f766e;--primary-dark:#115e59;}
+body{font-family:'Inter',system-ui,sans-serif;background:#f8fafc;}
+.mono{font-family:'JetBrains Mono',monospace}
+.serif{font-family:'Merriweather',serif}
+.card{border:1px solid #e2e8f0;background:white;border-radius:16px;box-shadow:0 1px 3px rgba(15,23,42,.05)}
+.step-active{background:var(--primary);color:white;border-color:var(--primary)}
+.step-done{background:#ccfbf1;color:#115e59;border-color:#99f6e4}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,.1)}
+@media print{
+  .no-print{display:none !important}
+  body{background:white}
+  #presentation{box-shadow:none !important;border:none !important}
+}
+.custom-scrollbar::-webkit-scrollbar{width:6px;height:6px}
+.custom-scrollbar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px}
+</style>
+</head>
+<body class="text-slate-800">
+<!-- Header -->
+<header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200 no-print">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-teal-700 flex items-center justify-center text-white font-bold">CH</div>
+      <div>
+        <h1 class="font-bold leading-none text-slate-900">ClinHistory</h1>
+        <p class="text-xs text-slate-500 -mt-0.5">Adaptive History Taking • Boloor Method</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="hidden sm:inline text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">Based on <em>Archith Boloor — Insider's Guide to Clinical Medicine</em></span>
+      <button onclick="resetAll()" class="text-xs border border-slate-200 px-3 py-1.5 rounded-full hover:bg-slate-50">Reset</button>
+      <button onclick="window.print()" class="text-xs bg-slate-900 text-white px-3 py-1.5 rounded-full hover:bg-black">Print / PDF</button>
+    </div>
+  </div>
+</header>
+
+<div class="max-w-6xl mx-auto px-4 py-6 grid grid-cols-12 gap-6">
+  <!-- Left: Wizard -->
+  <div class="col-span-12 lg:col-span-7 xl:col-span-7">
+    <!-- Progress -->
+    <div class="card p-4 mb-4 no-print">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-semibold">History Taking Progress</p>
+        <p class="text-xs text-slate-500"><span id="progressText">Step 1 of 8</span> • <span id="completionPct">12%</span></p>
+      </div>
+      <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-4">
+        <div id="progressBar" class="h-full bg-teal-700 transition-all" style="width:12%"></div>
+      </div>
+      <div id="stepper" class="grid grid-cols-4 sm:grid-cols-8 gap-1.5"></div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card p-5 sm:p-6">
+      <!-- Step 1: Particulars -->
+      <section data-step="1" class="step-panel">
+        <h2 class="font-bold text-lg flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-teal-700 text-white flex items-center justify-center text-sm">1</span> Patient Particulars</h2>
+        <p class="text-sm text-slate-500 mt-1 mb-4">As per Boloor: Name, Age, Sex, Address, Occupation, Religion, Handedness, Informant & Reliability</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="text-sm">Name <input id="p_name" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g., Mr. Ramesh Kumar"></label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="text-sm">Age <input id="p_age" type="number" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="45"></label>
+            <label class="text-sm">Sex
+              <select id="p_sex" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white" onchange="toggleMenstrualSection()">
+                <option value="">Select</option><option>Male</option><option>Female</option><option>Other</option>
+              </select>
+            </label>
+          </div>
+          <label class="text-sm">Occupation <input id="p_occupation" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g., Farmer, Teacher, Student"></label>
+          <label class="text-sm">Religion <input id="p_religion" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Optional - for diet/fasting context"></label>
+          <label class="text-sm">Handedness
+            <select id="p_handed" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
+              <option>Right-handed</option><option>Left-handed</option><option>Ambidextrous</option>
+            </select>
+          </label>
+          <label class="text-sm">Marital Status
+            <select id="p_marital" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
+              <option>Single</option><option>Married</option><option>Widowed</option><option>Divorced</option>
+            </select>
+          </label>
+          <label class="text-sm sm:col-span-2">Address / Residence <input id="p_address" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Village / Town, District - relevant for endemic diseases"></label>
+          <label class="text-sm">Informant
+            <select id="p_informant" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
+              <option>Patient himself/herself</option><option>Relative</option><option>Bystander</option><option>Mixed</option>
+            </select>
+          </label>
+          <label class="text-sm">Reliability
+            <select id="p_reliability" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white">
+              <option>Reliable</option><option>Partially reliable</option><option>Unreliable</option>
+            </select>
+          </label>
+          <label class="text-sm sm:col-span-2">Date & Time of History Taking <input id="p_date" type="datetime-local" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm"></label>
+        </div>
+      </section>
+
+      <!-- Step 2: Chief Complaints -->
+      <section data-step="2" class="step-panel hidden">
+        <h2 class="font-bold text-lg flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-teal-700 text-white flex items-center justify-center text-sm">2</span> Chief Complaints</h2>
+        <p class="text-sm text-slate-500 mt-1 mb-4">In patient's own words, in chronological order. Mention duration. Is it an <b>aggravation of baseline chronic symptoms</b>? (Boloor: e.g., COPD patient with increased dyspnea for 3 days)</p>
+        
+        <div id="ccList" class="space-y-3"></div>
+        <button onclick="addCC()" class="mt-3 text-sm border border-dashed border-teal-600 text-teal-700 px-3 py-1.5 rounded-full hover:bg-teal-50">+ Add Chief Complaint</button>
+
+        <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <label class="text-sm font-medium">Overall: Is this an exacerbation/aggravation of a chronic baseline problem?
+            <select id="cc_baseline" class="w-full mt-1 border border-amber-200 rounded-lg px-3 py-2 text-sm bg-white">
+              <option value="no">No — New complaints</option>
+              <option value="yes">Yes — Aggravation of known chronic symptoms</option>
+            </select>
+          </label>
+          <div id="baselineDetailsWrap" class="hidden mt-2">
+            <input id="cc_baseline_details" class="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g., Known hypertensive for 5 yrs, but chest pain increased since 2 days / Known asthmatic with increased wheeze">
+          </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Tip: Write like — “Fever for 3 days”, “Chest pain on exertion for 1 week”, “Shortness of breath NYHA III for 2 months, worsened for 3 days”</p>
+      </section>
+
+      <!-- Step 3: HPI Adaptive -->
+      <section data-step="3" class="step-panel hidden">
+        <div class="flex items-start justify-between gap-3">
+          <h2 class="font-bold text-lg flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-teal-700 text-white flex items-center justify-center text-sm">3</span> History of Present Illness</h2>
+          <span id="hpiBadge" class="text-xs bg-teal-50 text-teal-700 border border-teal-200 px-2 py-1 rounded-full">Adaptive • Analyzed from Chief Complaints</span>
+        </div>
+        <p class="text-sm text-slate-500 mt-1 mb-3">Questions auto-adapt based on your chief complaints. Answer in detail — this drives the provisional diagnosis.</p>
+        
+        <div id="hpiDetected" class="mb-3 flex flex-wrap gap-1.5"></div>
+
+        <div id="hpiContainer" class="space-y-4"></div>
+
+        <div class="mt-4 border-t pt-4 space-y-3">
+          <h3 class="font-semibold text-sm">Common HPI Anchors (Boloor SOCRATES + Associated)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <label>Onset <select id="hpi_onset" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option value="">Select</option><option>Acute (hours)</option><option>Subacute (days-weeks)</option><option>Insidious / Gradual</option><option>Sudden</option></select></label>
+            <label>Course / Progression <select id="hpi_course" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option value="">Select</option><option>Progressive</option><option>Static</option><option>Intermittent / Episodic</option><option>Remitting & Relapsing</option><option>Improving</option></select></label>
+            <label>Severity (0-10) <input id="hpi_severity" type="range" min="0" max="10" value="5" class="w-full mt-2" oninput="document.getElementById('sevVal').textContent=this.value"><span class="text-xs text-slate-500"><span id="sevVal">5</span>/10</span></label>
+            <label>Diurnal / Temporal Pattern <input id="hpi_temporal" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., morning, night, after meals, exertional"></label>
+          </div>
+          <label class="text-sm block">Aggravating factors <input id="hpi_agg" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g., exertion, cold, dust, food, lying down"></label>
+          <label class="text-sm block">Relieving factors <input id="hpi_relief" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g., rest, medication, sitting upright, vomiting"></label>
+          <label class="text-sm block">Treatment taken for present illness & response <textarea id="hpi_treatment" rows="2" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g., Paracetamol for fever - temp subsided temporarily; used salbutamol inhaler - partial relief"></textarea></label>
+          <label class="text-sm block flex items-center gap-2"><input id="hpi_negative" type="checkbox" class="rounded"> Relevant negatives already covered (provide details in adaptive section above)</label>
+        </div>
+      </section>
+
+      <!-- Step 4: Past History -->
+      <section data-step="4" class="step-panel hidden">
+        <h2 class="font-bold text-lg flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-teal-700 text-white flex items-center justify-center text-sm">4</span> Past History</h2>
+        <div class="grid grid-cols-1 gap-3 mt-4 text-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label>Known comorbidities
+              <div class="mt-1 grid grid-cols-2 gap-1.5 text-xs" id="comorbidGrid"></div>
+              <input id="past_other_comorbid" class="w-full mt-2 border border-slate-200 rounded-lg px-3 py-2" placeholder="Other: e.g., Thyroid, CKD">
+            </label>
+            <label>Childhood illnesses <input id="past_childhood" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., measles, rheumatic fever, asthma since childhood"></label>
+          </div>
+          <label>Hospitalizations / Surgeries / Transfusions <textarea id="past_hosp" rows="2" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., Appendectomy 2018, Blood transfusion after delivery, ICU admission for DKA last year"></textarea></label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label>Detailed Drug History <textarea id="past_drugs" rows="2" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="All current meds with dose, duration, compliance, OTC, herbal, steroids"></textarea></label>
+            <label>Allergies (Drug / Food / Contrast) <input id="past_allergy" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., Penicillin - rash, Dust - sneezing"></label>
+          </div>
+          <label>Immunization (Adult) <select id="past_vaccine" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Up to date as per age</option><option>Not up to date / Unknown</option><option>COVID vaccinated (2 doses + booster)</option></select></label>
+        </div>
+      </section>
+
+      <!-- Step 5: Personal & Social + Menstrual -->
+      <section data-step="5" class="step-panel hidden">
+        <h2 class="font-bold text-lg flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-teal-700 text-white flex items-center justify-center text-sm">5</span> Personal, Social & Habits</h2>
+        <div class="space-y-4 mt-4 text-sm">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label>Diet
+              <select id="per_diet" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Vegetarian</option><option>Mixed (Veg + Non-veg)</option><option>Vegan</option><option>Jain</option></select>
+            </label>
+            <label>Appetite <select id="per_appetite" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Normal</option><option>Increased</option><option>Decreased</option><option>Anorexia</option></select></label>
+            <label>Sleep <select id="per_sleep" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Normal (6-8 hrs)</option><option>Disturbed / Insomnia</option><option>Daytime sleepiness</option><option>Snoring / OSA symptoms</option></select></label>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label>Bowel <select id="per_bowel" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Regular, 1/day</option><option>Constipated</option><option>Loose stools / Diarrhea</option><option>Alternating</option></select></label>
+            <label>Bladder <select id="per_bladder" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Normal</option><option>Increased frequency</option><option>Burning / Dysuria</option><option>Hesitancy / retention</option></select></label>
+            <label>Weight change <select id="per_weight" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Stable</option><option>Loss - unintentional</option><option>Gain</option></select></label>
+          </div>
+
+          <!-- Addictions -->
+          <div class="border border-slate-200 rounded-xl p-3 bg-slate-50">
+            <p class="font-semibold text-sm mb-2">Addictions — Pack-years / Units in detail</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label>Smoking <select id="per_smoke_status" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Never smoker</option><option>Current smoker</option><option>Ex-smoker</option><option>Passive exposure</option></select>
+                <input id="per_smoke_details" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., 10 beedis/day x 15 yrs = 7.5 pack-yrs">
+              </label>
+              <label>Alcohol <select id="per_alcohol_status" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Non-alcoholic</option><option>Occasional / Social</option><option>Regular</option><option>Ex-drinker</option></select>
+                <input id="per_alcohol_details" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., 60 ml whiskey 3x/week x 5 yrs">
+              </label>
+              <label>Other (Tobacco chewing / Areca / Cannabis) <input id="per_other_addiction" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., Gutka 2 packets/day x 10 yrs"></label>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label>Occupational / Environmental exposure <input id="per_occup_exp" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., silica, asbestos, pesticides, coal, night shifts"></label>
+            <label>Travel / Contact / Pets / High-risk behavior <input id="per_exposure" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., recent travel to NE, TB contact, pets, IV drug use"></label>
+          </div>
+          <label>Exercise / Activity <input id="per_exercise" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., sedentary, walks 30 min daily"></label>
+
+          <!-- Menstrual & Obstetric - conditional -->
+          <div id="menstrualBlock" class="hidden border border-pink-200 rounded-xl p-3 bg-pink-50">
+            <p class="font-semibold text-sm text-pink-800 mb-2">Menstrual & Obstetric History (Female patient)</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label>Menarche age <input id="mens_menarche" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white" placeholder="e.g., 13 yrs"></label>
+              <label>Cycle <select id="mens_cycle" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white"><option>Regular 28-30 days</option><option>Irregular</option><option>Amenorrhea</option><option>Menorrhagia</option><option>Oligomenorrhea</option></select></label>
+              <label>LMP <input id="mens_lmp" type="date" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white"></label>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              <label>Menstrual flow <input id="mens_flow" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white" placeholder="e.g., 3-4 days, moderate, clots, dysmenorrhea"></label>
+              <label>Menopause (if applicable) <input id="mens_menopause" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white" placeholder="e.g., attained at 48 yrs"></label>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-3">
+              <label>Gravida <input id="obs_g" type="number" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white" placeholder="G"></label>
+              <label>Para <input id="obs_p" type="number" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white" placeholder="P"></label>
+              <label>Living <input id="obs_l" type="number" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white" placeholder="L"></label>
+              <label>Abortion <input id="obs_a" type="number" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white" placeholder="A"></label>
+            </div>
+            <label class="block mt-3">Obstetric details <textarea id="obs_details" rows="2" class="w-full mt-1 border border-pink-200 rounded-lg px-3 py-2 bg-white" placeholder="e.g., G2P1L1A0 - FTVD 2019 without complications; contraception: Cu-T"></textarea></label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 6: Family History -->
+      <section data-step="6" class="step-panel hidden">
+        <h2 class="font-bold text-lg flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-teal-700 text-white flex items-center justify-center text-sm">6</span> Family & Socioeconomic History</h2>
+        <div class="space-y-3 mt-4 text-sm">
+          <label>Family pedigree summary <textarea id="fam_history" rows="2" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., Father 60 - diabetic, hypertensive; Mother 55 - healthy; One brother - asthma; No consanguinity"></textarea></label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label>Consanguinity <select id="fam_consan" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>No</option><option>Yes - 2nd degree</option><option>Yes - 3rd degree</option></select></label>
+            <label>Family h/o similar illness / Hereditary diseases <input id="fam_similar" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., TB in father, CAD in family, malignancy"></label>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label>Socioeconomic status (Kuppuswamy) <select id="fam_ses" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white"><option>Upper</option><option>Upper Middle</option><option>Lower Middle</option><option>Upper Lower</option><option>Lower</option></select></label>
+            <label>Housing / Sanitation <input id="fam_housing" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., kutcha, overcrowded, open defecation"></label>
+            <label>Support system <input id="fam_support" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., lives with spouse & children, caregiver present"></label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 7: Review of Systems -->
+      <section data-step="7" class="step-panel hidden">
+        <h2 class="font-bold text-lg flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-teal-700 text-white flex items-center justify-center text-sm">7</span> Review of Systems (ROS)</h2>
+        <p class="text-sm text-slate-500 mt-1">Screen for systemic symptoms not yet covered. The app pre-ticks relevant ones based on chief complaints.</p>
+        <div id="rosGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-sm"></div>
+        <label class="text-sm block mt-3">Any other positive / negative ROS details <textarea id="ros_other" rows="2" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="e.g., No hemoptysis, no night sweats, no dysuria, no joint pains"></textarea></label>
+      </section>
+
+      <!-- Step 8: Summary -->
+      <section data-step="8" class="step-panel hidden">
+        <h2 class="font-bold text-lg flex items-center gap-2"><span class="w-7 h-7 rounded-full bg-teal-700 text-white flex items-center justify-center text-sm">8</span> Summary & Provisional Diagnosis</h2>
+        <p class="text-sm text-slate-500 mt-1">AI-assisted differentials — review before presenting. This is not a replacement for clinical examination & investigations.</p>
+        <div id="dxContainer" class="mt-4 space-y-3"></div>
+        <div class="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+          <label class="text-sm font-medium">Your clinical impression / Add provisional diagnosis manually <textarea id="dx_manual" rows="2" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white text-sm" placeholder="e.g., Provisional: Acute exacerbation of COPD with community acquired pneumonia..."></textarea></label>
+        </div>
+      </section>
+
+      <!-- Navigation -->
+      <div class="flex items-center justify-between mt-6 pt-4 border-t border-slate-100 no-print">
+        <button id="prevBtn" onclick="go(-1)" class="px-4 py-2 rounded-full border border-slate-200 text-sm hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">← Previous</button>
+        <div class="flex gap-2">
+          <button onclick="generatePresentation()" class="hidden sm:inline-flex px-3 py-2 rounded-full border border-teal-700 text-teal-700 text-sm hover:bg-teal-50">Update Presentation</button>
+          <button id="nextBtn" onclick="go(1)" class="px-5 py-2 rounded-full bg-teal-700 text-white text-sm hover:bg-teal-800">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-xs text-slate-400 mt-3 text-center no-print">All data stays in your browser (localStorage). No server upload.</p>
+  </div>
+
+  <!-- Right: Live Presentation -->
+  <div class="col-span-12 lg:col-span-5 xl:col-span-5">
+    <div class="lg:sticky lg:top-[65px] space-y-4">
+      <div class="flex items-center justify-between no-print">
+        <h3 class="font-bold text-sm">Live Presentation Preview</h3>
+        <div class="flex gap-1.5">
+          <button onclick="copyPresentation()" class="text-xs border border-slate-200 bg-white px-3 py-1.5 rounded-full hover:bg-slate-50">Copy Text</button>
+          <button onclick="generatePresentation()" class="text-xs bg-teal-700 text-white px-3 py-1.5 rounded-full hover:bg-teal-800">Refresh</button>
+        </div>
+      </div>
+
+      <div id="presentation" class="card p-5 sm:p-6 bg-white">
+        <div class="text-center border-b border-slate-900 pb-3 mb-4">
+          <p class="text-xs tracking-widest text-slate-500 uppercase">Case Presentation</p>
+          <h2 class="serif font-bold text-lg leading-tight mt-1">History Taking Proforma</h2>
+          <p class="text-xs text-slate-500 mt-1">Department of Medicine • History as per Archith Boloor</p>
+        </div>
+
+        <div id="presentationContent" class="text-sm leading-relaxed space-y-3 custom-scrollbar overflow-auto max-h-[65vh] lg:max-h-[72vh] pr-1">
+          <!-- JS filled -->
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-dashed border-slate-300 no-print">
+          <p class="text-xs text-slate-500">This presentation is auto-formatted for viva / bedside rounds. Use Print → Save as PDF to share.</p>
+        </div>
+      </div>
+
+      <div class="card p-3 no-print bg-amber-50 border-amber-200">
+        <p class="text-xs font-semibold text-amber-800">⚠️ Disclaimer</p>
+        <p class="text-xs text-amber-700 mt-1">For academic use only. Provisional diagnosis is rule-based and cannot replace history + examination + investigations + consultant opinion. Always correlate clinically.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const steps = [
+  {n:1,label:'Particulars'},
+  {n:2,label:'Chief\nComplaints'},
+  {n:3,label:'HPI'},
+  {n:4,label:'Past Hx'},
+  {n:5,label:'Personal'},
+  {n:6,label:'Family'},
+  {n:7,label:'ROS'},
+  {n:8,label:'Diagnosis'}
+];
+let cur = 1;
+let ccCount = 0;
+
+// Symptom knowledge base — Boloor style adaptive questions
+const symptomDB = {
+  'chest pain': {
+    label:'Chest Pain / Chest Discomfort',
+    qs:[
+      {id:'cp_site',q:'Site of chest pain? (retrosternal / precordial / left inframammary / right)',type:'text',ph:'e.g., retrosternal, radiating to left arm & jaw'},
+      {id:'cp_onset',q:'Onset & character? (squeezing / tightness / pricking / burning / pleuritic)',type:'select',opts:['Squeezing / pressure (anginal)','Burning (reflux)','Sharp / pleuritic (↑ on breathing/cough)','Stabbing / tearing','Dull ache']},
+      {id:'cp_radiation',q:'Radiation?',type:'text',ph:'e.g., to left arm, neck, jaw, back, epigastrium'},
+      {id:'cp_duration',q:'Duration of each episode & episodes/day?',type:'text',ph:'e.g., 5-10 min, 3 episodes today'},
+      {id:'cp_exertion',q:'Relation to exertion / emotion? Relieved by rest or nitrates?',type:'text',ph:'e.g., on climbing 1 flight, relieved by 2 min rest'},
+      {id:'cp_assoc',q:'Associated: breathlessness, palpitations, diaphoresis, syncope, nausea?',type:'text',ph:''},
+      {id:'cp_pleuritic',q:'Pleuritic? (↑ on deep breath/cough), positional, pericardial rub?',type:'select',opts:['No','Yes - pleuritic','Positional / pericardial','Musculoskeletal / tender']},
+    ]
+  },
+  'breathlessness':{
+    label:'Dyspnea / Breathlessness',
+    qs:[
+      {id:'dys_nyha',q:'NYHA / MMRC grade? (I-IV)',type:'select',opts:['Grade I - only on strenuous exertion','Grade II - on walking 1 km / climbing 1 flight','Grade III - on walking 100m / ADL','Grade IV - at rest']},
+      {id:'dys_orthopnea',q:'Orthopnea / PND / Bendopnea / Platypnea?',type:'text',ph:'e.g., orthopnea - needs 2 pillows, PND after 2 hrs sleep'},
+      {id:'dys_wheeze',q:'Wheeze / chest tightness / cough?',type:'text',ph:''},
+      {id:'dys_onset',q:'Onset - sudden (PE/pneumothorax) vs gradual (CHF/COPD/ILD)?',type:'text',ph:''},
+      {id:'dys_rooms',q:'Trigger - exertion, supine, cold, dust, seasons?',type:'text',ph:''},
+    ]
+  },
+  'dyspnea':{ alias:'breathlessness' },
+  'sob':{ alias:'breathlessness' },
+  'cough':{
+    label:'Cough',
+    qs:[
+      {id:'cough_type',q:'Dry vs productive? Sputum amount, colour, odour?',type:'select',opts:['Dry','Productive - mucoid (white)','Productive - mucopurulent (yellow/green)','Productive - foul smelling','Hemoptysis streaks']},
+      {id:'cough_qty',q:'Sputum quantity (teaspoon / cup), diurnal variation?',type:'text',ph:'e.g., ~30 ml morning, yellow, not foul'},
+      {id:'cough_blood',q:'Hemoptysis? Amount, frank blood vs streaks, clots?',type:'text',ph:''},
+      {id:'cough_duration',q:'Duration & pattern (acute <3 wk / subacute / chronic >8 wk)?',type:'text',ph:''},
+      {id:'cough_trigger',q:'Postnasal drip / wheeze / fever / chest pain / ACE inhibitor?',type:'text',ph:''},
+    ]
+  },
+  'fever':{
+    label:'Fever',
+    qs:[
+      {id:'fever_grade',q:'Grade & measurement (low / moderate / high, max recorded)?',type:'text',ph:'e.g., 101-102°F, thermometer verified'},
+      {id:'fever_pattern',q:'Pattern? (continuous / intermittent / remittent / evening rise / with chills & rigors)',type:'select',opts:['Continuous','Intermittent','Remittent','Evening rise (TB)','With chills & rigors','Only feverish feeling']},
+      {id:'fever_assoc',q:'Associated: chills, rigors, sweats, headache, myalgia?',type:'text',ph:''},
+      {id:'fever_duration',q:'Duration, diurnal, subsides with paracetamol?',type:'text',ph:''},
+      {id:'fever_exposure',q:'Exposure: travel, mosquitos, water, sick contacts, URTI/UTI?',type:'text',ph:''},
+    ]
+  },
+  'headache':{
+    label:'Headache',
+    qs:[
+      {id:'ha_site',q:'Site (frontal/temporal/occipital/holocephalic/unilateral), thunderclap?',type:'text',ph:''},
+      {id:'ha_character',q:'Type (pulsatile / tight band / stabbing), severity, photophobia?',type:'text',ph:''},
+      {id:'ha_assoc',q:'Associated: vomiting, visual changes, fever, neck stiffness, aura?',type:'text',ph:''},
+      {id:'ha_relief',q:'Relieving / worsening (sleep, analgesics, stress, menses)?',type:'text',ph:''},
+    ]
+  },
+  'abdominal pain':{
+    label:'Abdominal Pain',
+    qs:[
+      {id:'ap_site',q:'Site & quadrant (RUQ/epigastric/periumbilical/suprapubic/diffuse)?',type:'text',ph:''},
+      {id:'ap_character',q:'Colicky vs dull vs burning vs sharp, radiation to back/shoulder?',type:'select',opts:['Colicky / cramping','Dull aching','Burning / dyspeptic','Sharp / stabbing','Diffuse']},
+      {id:'ap_food',q:'Relation to food (↑ after food / hunger pain / relieved by food)?',type:'text',ph:''},
+      {id:'ap_vomit',q:'Associated: vomiting, fever, bowel/bladder, jaundice, hematemesis/melena?',type:'text',ph:''},
+    ]
+  },
+  'vomiting':{
+    label:'Vomiting / Nausea',
+    qs:[
+      {id:'vomit_freq',q:'Frequency, projectile vs non-projectile, content (food/bile/blood)?',type:'text',ph:''},
+      {id:'vomit_relation',q:'Relation to food / pain / headache / drugs / pregnancy?',type:'text',ph:''},
+    ]
+  },
+  'edema':{
+    label:'Edema / Swelling',
+    qs:[
+      {id:'edema_site',q:'Site (ankle / generalized / periorbital / unilateral leg), pitting?',type:'text',ph:''},
+      {id:'edema_diurnal',q:'Diurnal variation (worse evening, periorbital morning)?',type:'text',ph:''},
+      {id:'edema_assoc',q:'Associated: dyspnea, oliguria, jaundice, nutrition?',type:'text',ph:''},
+    ]
+  },
+  'palpitation':{
+    label:'Palpitations',
+    qs:[
+      {id:'palp_rate',q:'Rate (fast/slow), regular/irregular, sudden onset/termination?',type:'text',ph:''},
+      {id:'palp_assoc',q:'Associated: chest pain, syncope, dyspnea, anxiety?',type:'text',ph:''},
+    ]
+  },
+  'weight loss':{
+    label:'Weight Loss / Loss of Appetite',
+    qs:[
+      {id:'wt_amount',q:'Amount lost (kg) over what duration? Intentional?',type:'text',ph:'e.g., 5 kg in 2 months, unintentional'},
+      {id:'wt_appetite',q:'Appetite (anorexia?), dysphagia, night sweats?',type:'text',ph:''},
+    ]
+  },
+  'fatigue':{ label:'Fatigue / Weakness', qs:[{id:'fatig',q:'Generalized vs focal weakness, fatigability, duration, limitation of activity?',type:'text',ph:''}]},
+  'syncope':{ label:'Syncope / Giddiness', qs:[{id:'syn',q:'Prodrome, triggers (prolonged standing, micturition), injury, seizures, duration of LOC?',type:'text',ph:''}]},
+  'hematuria':{ label:'Hematuria / Dysuria / Urinary complaints', qs:[{id:'urine',q:'Colour (red/smoky), clots, burning, frequency, urgency, oliguria/anuria, frothy?',type:'text',ph:''}]},
+  'jaundice':{ label:'Jaundice', qs:[{id:'jaun',q:'Yellowish discoloration onset, pruritus, stool colour (pale), urine colour (dark), pain, fever?',type:'text',ph:''}]},
+  'diarrhea':{ label:'Diarrhea', qs:[{id:'dia',q:'Frequency, consistency, blood/mucus, tenesmus, dehydration, relation to food?',type:'text',ph:''}]},
+};
+
+const comorbidList = ['Hypertension','Diabetes Mellitus','Asthma / COPD','Tuberculosis (past/current)','Ischemic Heart Disease','Heart Failure','Stroke / TIA','Seizure / Epilepsy','Thyroid disorder','CKD / renal disease','Liver disease','Malignancy','HIV / Immunosuppression','Psychiatric illness','Dyslipidemia'];
+const rosList = [
+  {sys:'General', items:['Fever','Fatigue / malaise','Weight loss/gain','Night sweats','Appetite change']},
+  {sys:'Respiratory', items:['Cough','Sputum','Hemoptysis','Wheeze','Dyspnea','Chest pain (pleuritic)','Snoring / apneas']},
+  {sys:'Cardiac', items:['Chest pain (exertional)','Palpitations','Orthopnea / PND','Edema','Syncope']},
+  {sys:'GI', items:['Nausea / vomiting','Abdominal pain','Dysphagia / odynophagia','Heartburn / reflux','Jaundice','Constipation / diarrhea','Blood in stool','Hematemesis']},
+  {sys:'Genitourinary', items:['Dysuria / burning','Frequency / urgency','Hematuria','Oliguria / polyuria','Discharge / STI symptoms']},
+  {sys:'Neurological', items:['Headache','Dizziness / vertigo','Seizure','Weakness / paresis','Numbness / paresthesia','Tremor','Speech / vision change']},
+  {sys:'Musculoskeletal / Skin', items:['Joint pain / swelling','Myalgia','Rash / itching','Hair loss','Photosensitivity','Raynaud','Back pain']},
+];
+
+function init(){
+  document.getElementById('p_date').value = new Date().toISOString().slice(0,16);
+  renderStepper();
+  renderComorbid();
+  renderROS();
+  addCC(); addCC();
+  updateNav();
+  loadFromStorage();
+  generateHPI(); generatePresentation();
+  document.getElementById('cc_baseline').addEventListener('change', e=>{
+    document.getElementById('baselineDetailsWrap').classList.toggle('hidden', e.target.value==='no');
+  });
+  // autosave
+  document.addEventListener('input', debounce(saveToStorage, 600));
+  document.addEventListener('change', debounce(saveToStorage, 600));
+}
+function debounce(fn,ms){let t;return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}}
+
+function renderStepper(){
+  const el=document.getElementById('stepper');
+  el.innerHTML = steps.map(s=>{
+    const state = s.n===cur ? 'step-active' : s.n<cur ? 'step-done' : 'bg-white border border-slate-200 text-slate-400';
+    return `<div class="text-center">
+      <div class="w-full h-8 rounded-full flex items-center justify-center text-xs font-bold border ${state}">${s.n<cur?'✓':s.n}</div>
+      <p class="text-[10px] leading-tight mt-1 font-medium whitespace-pre-line">${s.label}</p>
+    </div>`;
+  }).join('');
+}
+
+function renderComorbid(){
+  document.getElementById('comorbidGrid').innerHTML = comorbidList.map(c=>`
+    <label class="flex items-center gap-1.5 border border-slate-200 rounded-lg px-2 py-1.5 bg-white cursor-pointer hover:bg-slate-50"><input type="checkbox" class="comorbidChk" value="${c}"> ${c}</label>
+  `).join('');
+}
+
+function renderROS(){
+  const cont=document.getElementById('rosGrid');
+  let html='';
+  rosList.forEach(g=>{
+    html+= `<div class="col-span-2 sm:col-span-1 border border-slate-100 rounded-xl p-2 bg-white"><p class="text-xs font-bold text-teal-800 mb-1">${g.sys}</p>
+      <div class="space-y-1">${g.items.map(it=>`<label class="flex items-center gap-1.5 text-xs"><input type="checkbox" class="rosChk" value="${g.sys}: ${it}"> ${it}</label>`).join('')}</div></div>`;
+  });
+  cont.innerHTML = html;
+}
+
+function addCC(){
+  ccCount++;
+  const div=document.createElement('div');
+  div.className='border border-slate-200 rounded-xl p-3 bg-white relative';
+  div.innerHTML=`
+    <div class="flex items-center justify-between">
+      <p class="text-xs font-bold text-slate-700">Complaint #${ccCount}</p>
+      <button onclick="this.closest('div.border').remove();generateHPI();generatePresentation()" class="text-xs text-slate-400 hover:text-red-500">Remove</button>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-2">
+      <label class="sm:col-span-3 text-xs">Complaint (in patient's words) <input data-cc="text" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g., chest pain, breathlessness, fever"></label>
+      <label class="text-xs">Duration <input data-cc="duration" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g., 3 days"></label>
+      <label class="text-xs">Duration unit
+        <select data-cc="unit" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"><option>days</option><option>hours</option><option>weeks</option><option>months</option><option>years</option></select>
+      </label>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mt-2">
+      <label class="text-xs">Onset <select data-cc="onset" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"><option>Acute</option><option>Insidious</option><option>Sudden</option></select></label>
+      <label class="text-xs">Progression <select data-cc="progress" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white"><option>Progressive</option><option>Static</option><option>Intermittent</option></select></label>
+    </div>
+  `;
+  div.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',()=>{generateHPI();generatePresentation()}));
+  div.querySelectorAll('select').forEach(el=>el.addEventListener('change',()=>{generateHPI();generatePresentation()}));
+  document.getElementById('ccList').appendChild(div);
+}
+
+function getCCs(){
+  return [...document.querySelectorAll('#ccList > div')].map(d=>({
+    text: d.querySelector('[data-cc="text"]').value.trim(),
+    duration: d.querySelector('[data-cc="duration"]').value.trim(),
+    unit: d.querySelector('[data-cc="unit"]').value,
+    onset: d.querySelector('[data-cc="onset"]').value,
+    progress: d.querySelector('[data-cc="progress"]').value,
+  })).filter(c=>c.text);
+}
+
+function normalizeKey(s){
+  s=s.toLowerCase();
+  // handle aliases and plurals
+  const keys = Object.keys(symptomDB);
+  let found=[];
+  for(const k of keys){
+    if(s.includes(k)) found.push(k);
+    // alias resolution
+    const entry = symptomDB[k];
+    if(entry.alias && s.includes(entry.alias)) found.push(k);
+  }
+  // also handle some synonyms
+  if(s.match(/shortness of breath|breathless|difficulty breath/)) found.push('breathlessness');
+  if(s.match(/chest tightness|angina/)) found.push('chest pain');
+  if(s.match(/loose stools|motions/)) found.push('diarrhea');
+  if(s.match(/yellow.*eyes|icterus/)) found.push('jaundice');
+  if(s.match(/urine.*blood|blood.*urine/)) found.push('hematuria');
+  if(s.match(/weight.*loss/)) found.push('weight loss');
+  if(s.match(/swelling.*feet|leg swelling|pedal edema/)) found.push('edema');
+  return [...new Set(found)];
+}
+
+function generateHPI(){
+  const ccs = getCCs();
+  const combined = ccs.map(c=>c.text).join(' ; ').toLowerCase();
+  let detected = new Set();
+  ccs.forEach(c=>{
+    normalizeKey(c.text).forEach(k=>{
+      // resolve alias to canonical
+      let canonical = k;
+      if(symptomDB[k] && symptomDB[k].alias) canonical = symptomDB[k].alias;
+      detected.add(canonical);
+    });
+  });
+  // also parse combined
+  normalizeKey(combined).forEach(k=>{
+    let canonical = k;
+    if(symptomDB[k] && symptomDB[k].alias) canonical = symptomDB[k].alias;
+    detected.add(canonical);
+  });
+  // fallback
+  if(detected.size===0 && (combined.trim()||ccs.length>0)){
+    // keep empty but show generic
+  }
+
+  // Badge area
+  const badgeEl=document.getElementById('hpiDetected');
+  if(detected.size>0){
+    badgeEl.innerHTML = '<span class="text-xs text-slate-500">Detected focus:</span>' + [...detected].map(d=>`<span class="text-xs bg-teal-700 text-white px-2 py-0.5 rounded-full">${symptomDB[d]?.label||d}</span>`).join('');
+  } else {
+    badgeEl.innerHTML = '<span class="text-xs text-slate-500">No specific keyword detected — generic SOCRATES questions will be used. Try: chest pain, breathlessness, cough, fever, headache, abdominal pain, etc.</span>';
+  }
+
+  // Build container
+  const cont=document.getElementById('hpiContainer');
+  cont.innerHTML='';
+  if(detected.size===0){
+    // generic HPI block
+    cont.innerHTML = `
+      <div class="border border-slate-200 rounded-xl p-3 bg-slate-50">
+        <p class="font-semibold text-sm">Generic HPI (SOCRATES)</p>
+        <div class="mt-2 space-y-2 text-sm">
+          <label class="block">Describe onset, duration, progression, character, severity (0-10) <textarea data-hpi="generic" rows="2" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white" placeholder="e.g., Gradual onset 3 days ago, progressive, dull aching..."></textarea></label>
+          <label class="block">Associated symptoms & relevant negatives <input data-hpi="assoc_generic" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2 bg-white" placeholder="e.g., no fever, no chest pain, no vomiting"></label>
+        </div>
+      </div>`;
+  } else {
+    [...detected].forEach(key=>{
+      const entry = symptomDB[key];
+      if(!entry || entry.alias) return;
+      const card=document.createElement('div');
+      card.className='border border-teal-200 rounded-xl p-3 bg-teal-50/40';
+      card.innerHTML=`<p class="font-semibold text-sm text-teal-900">${entry.label}</p>
+        <div class="mt-2 space-y-2">${entry.qs.map(q=>{
+          if(q.type==='select'){
+            return `<label class="block text-sm">${q.q} <select data-hpi="${q.id}" class="w-full mt-1 border border-teal-200 rounded-lg px-3 py-2 text-sm bg-white"><option value="">Select / Not applicable</option>${q.opts.map(o=>`<option>${o}</option>`).join('')}</select></label>`;
+          } else if(q.type==='text'){
+            return `<label class="block text-sm">${q.q} <input data-hpi="${q.id}" class="w-full mt-1 border border-teal-200 rounded-lg px-3 py-2 text-sm bg-white" placeholder="${q.ph||''}"></label>`;
+          }
+        }).join('')}</div>`;
+      cont.appendChild(card);
+    });
+    // Additional free text
+    const extra=document.createElement('div');
+    extra.className='border border-slate-200 rounded-xl p-3 bg-white';
+    extra.innerHTML=`<label class="block text-sm">Additional HPI details for these complaints (chronology, narrative) <textarea data-hpi="narrative" rows="2" class="w-full mt-1 border border-slate-200 rounded-lg px-3 py-2" placeholder="Write a short narrative linking the complaints... e.g., Patient was apparently well 1 week ago, then developed..."></textarea></label>`;
+    cont.appendChild(extra);
+  }
+
+  // attach listeners for presentation update
+  cont.querySelectorAll('input,select,textarea').forEach(el=>el.addEventListener('input',generatePresentation));
+  cont.querySelectorAll('select').forEach(el=>el.addEventListener('change',generatePresentation));
+
+  // auto-tick ROS based on detected
+  setTimeout(autoTickROS, 50);
+  generatePresentation();
+}
+
+function autoTickROS(){
+  const combined = getCCs().map(c=>c.text).join(' ').toLowerCase() + ' ' + [...document.querySelectorAll('[data-hpi]')].map(e=>e.value).join(' ').toLowerCase();
+  document.querySelectorAll('.rosChk').forEach(cb=>{
+    const v=cb.value.toLowerCase();
+    if(combined.includes('fever') && v.includes('fever')) cb.checked=true;
+    if(combined.includes('cough') && v.includes('cough')) cb.checked=true;
+    if(combined.includes('chest pain') && v.includes('chest pain')) cb.checked=true;
+    if(combined.includes('breathless')||combined.includes('dyspnea')||combined.includes('breathlessness') && v.includes('dyspnea')) cb.checked=true;
+    if(combined.includes('edema') && v.includes('edema')) cb.checked=true;
+    if(combined.includes('headache') && v.includes('headache')) cb.checked=true;
+    if(combined.includes('vomit') && v.includes('vomiting')) cb.checked=true;
+  });
+}
+
+function toggleMenstrualSection(){
+  const sex=document.getElementById('p_sex').value;
+  document.getElementById('menstrualBlock').classList.toggle('hidden', sex!=='Female');
+  generatePresentation();
+}
+
+// Navigation
+function go(dir){
+  const next = cur + dir;
+  if(next<1||next>8) return;
+  // validation minimal for step 1 & 2
+  if(dir===1){
+    if(cur===1){
+      if(!document.getElementById('p_name').value.trim() || !document.getElementById('p_age').value){
+        alert('Please fill Name and Age in Particulars.');
+        return;
+      }
+    }
+    if(cur===2){
+      if(getCCs().length===0){
+        alert('Please add at least one Chief Complaint.');
+        return;
+      }
+      generateHPI(); // refresh on entering HPI
+    }
+    if(cur===7){
+      generateDiagnosis();
+    }
+  }
+  document.querySelector(`[data-step="${cur}"]`).classList.add('hidden');
+  cur = next;
+  document.querySelector(`[data-step="${cur}"]`).classList.remove('hidden');
+  updateNav();
+  renderStepper();
+  window.scrollTo({top:0,behavior:'smooth'});
+  generatePresentation();
+  saveToStorage();
+}
+function updateNav(){
+  document.getElementById('prevBtn').disabled = cur===1;
+  const nextBtn=document.getElementById('nextBtn');
+  if(cur===8){
+    nextBtn.textContent='Finish → Presentation';
+    nextBtn.onclick=()=>{generatePresentation(); document.getElementById('presentation').scrollIntoView({behavior:'smooth'});}
+  } else {
+    nextBtn.textContent='Next →';
+    nextBtn.onclick=()=>go(1);
+  }
+  document.getElementById('progressText').textContent=`Step ${cur} of 8`;
+  document.getElementById('completionPct').textContent=Math.round(cur/8*100)+'%';
+  document.getElementById('progressBar').style.width=Math.round(cur/8*100)+'%';
+}
+
+// Diagnosis engine
+function generateDiagnosis(){
+  const ccs = getCCs();
+  const hpiVals = [...document.querySelectorAll('[data-hpi]')].map(e=>e.value).join(' ').toLowerCase();
+  const past = [...document.querySelectorAll('.comorbidChk:checked')].map(c=>c.value).join(' ').toLowerCase();
+  const smoke = document.getElementById('per_smoke_status').value.toLowerCase();
+  const combined = ccs.map(c=>c.text).join(' ').toLowerCase() + ' ' + hpiVals + ' ' + past;
+  let candidates=[];
+
+  // Rules
+  if(combined.includes('chest pain')){
+    if(combined.includes('exertion')||combined.includes('squeezing')||combined.includes('pressure')||combined.includes('hypertension')||combined.includes('diabetes')){
+      candidates.push({title:'Acute Coronary Syndrome (Stable / Unstable Angina / MI)',why:'Retrosternal squeezing chest pain, exertional, with CV risk factors',diff:['Stable angina','Unstable angina','NSTEMI/STEMI','Aortic dissection','GERD','Musculoskeletal','Pulmonary embolism']});
+    }
+    if(combined.includes('pleuritic')||combined.includes('breathing')||combined.includes('cough')){
+      candidates.push({title:'Pleuritic Chest Pain — consider Pulmonary / Pleural cause',why:'Pain ↑ on breathing/cough',diff:['Pneumonia with pleurisy','Pneumothorax','Pulmonary embolism','Pericarditis']});
+    }
+    if(candidates.length===0) candidates.push({title:'Chest pain — evaluate cardiac vs non-cardiac',why:'Undifferentiated chest pain',diff:['ACS','GERD','Costochondritis','Pneumonia','Anxiety']});
+  }
+  if(combined.includes('breathlessness')||combined.includes('dyspnea')||combined.includes('sob')||combined.includes('orthopnea')||combined.includes('pnd')){
+    candidates.push({title:'Heart Failure / Dyspnea syndrome',why:'Dyspnea + orthopnea/PND/edema suggests failure; also consider COPD/Anemia',diff:['Acute decompensated HF','COPD exacerbation','Acute asthma','Anemia','ILD','Pleural effusion']});
+  }
+  if(combined.includes('cough')){
+    if(combined.includes('fever')){
+      candidates.push({title:'Lower Respiratory Tract Infection — Pneumonia / Bronchitis',why:'Cough + fever ± sputum',diff:['Community-acquired pneumonia','Acute bronchitis','Tuberculosis','COPD exacerbation']});
+    }
+    if(combined.includes('blood')||combined.includes('hemoptysis')||combined.includes('haemoptysis')){
+      candidates.push({title:'Hemoptysis — requires urgent workup',why:'Cough with blood',diff:['Tuberculosis','Bronchiectasis','Malignancy','Pneumonia','PE']});
+    }
+    if(combined.includes('wheeze')){
+      candidates.push({title:'Airway disease — Asthma / COPD',why:'Cough + wheeze',diff:['Bronchial asthma','COPD','Allergic bronchopulmonary aspergillosis']});
+    }
+  }
+  if(combined.includes('fever')){
+    if(combined.includes('chills')||combined.includes('rigor')){
+      candidates.push({title:'Febrile illness with chills — Infective',why:'Fever with rigors',diff:['Malaria','UTI / Pyelonephritis','Typhoid / Enteric fever','Bacteremia','Dengue']});
+    }
+    if(combined.includes('cough') && combined.includes('evening rise')){
+      candidates.push({title:'Tuberculosis (Pulmonary) — to rule out',why:'Chronic cough + evening rise fever + weight loss',diff:['TB','Pneumonia','Malignancy','Bronchiectasis']});
+    }
+    if(candidates.filter(c=>c.title.includes('Febrile')).length===0 && !combined.includes('cough')){
+      candidates.push({title:'Acute Undifferentiated Fever',why:'Short duration fever without localizing features',diff:['Viral fever / Dengue','Malaria','Typhoid','UTI','COVID-19 / Influenza']});
+    }
+  }
+  if(combined.includes('abdominal pain')){
+    candidates.push({title:'Acute Abdomen / Dyspepsia syndrome',why:'Abdominal pain with associated GI features',diff:['Acid peptic disease / Gastritis','Cholecystitis / Choledocholithiasis','Appendicitis','Pancreatitis','Renal colic','PID (if female)']});
+  }
+  if(combined.includes('headache')){
+    if(combined.includes('fever') && (combined.includes('vomit')||combined.includes('neck'))){
+      candidates.push({title:'Headache with fever — rule out CNS infection',why:'Headache + fever + vomiting',diff:['Meningitis','Encephalitis','Sinusitis','Migraine with systemic infection']});
+    } else {
+      candidates.push({title:'Primary Headache syndrome',why:'Headache without red flags in history',diff:['Tension headache','Migraine','Cluster','Medication overuse']});
+    }
+  }
+  if(combined.includes('edema')||combined.includes('swelling')){
+    candidates.push({title:'Edema — systemic evaluation',why:'Generalized / pedal edema',diff:['Heart failure','Nephrotic / CKD','Liver cirrhosis','Hypoproteinemia / Anemia','Venous insufficiency']});
+  }
+  if(combined.includes('vomit')||combined.includes('vomiting')){
+    if(candidates.length<2) candidates.push({title:'Gastrointestinal / Central cause of vomiting',why:'Vomiting as chief complaint',diff:['Gastritis / GE','Intestinal obstruction','Increased ICT','Uremia','Drug induced']});
+  }
+  if(combined.includes('jaundice')){
+    candidates.push({title:'Jaundice — Hepatobiliary disease',why:'Yellowish discoloration',diff:['Viral hepatitis','Choledocholithiasis','Hemolytic jaundice','Alcoholic liver disease','Malignant obstruction']});
+  }
+  if(combined.includes('hematuria')||combined.includes('dysuria')||combined.includes('urine')){
+    candidates.push({title:'Urinary tract syndrome',why:'Urinary complaints',diff:['UTI / Cystitis','Renal calculi','Glomerulonephritis','Prostatism (male)']});
+  }
+  if(combined.includes('weight loss')||combined.includes('loss of appetite')){
+    candidates.push({title:'Chronic systemic illness — malignancy / TB / hyperthyroidism to rule out',why:'Significant weight loss',diff:['Tuberculosis','Malignancy','Hyperthyroidism','Chronic infection','Depression']});
+  }
+  if(candidates.length===0){
+    candidates.push({title:'Undifferentiated complaints — requires detailed examination & investigations',why:'No pattern matched; please correlate clinically',diff:['Functional / Multifactorial','Anemia','Thyroid disorder','Chronic infection','Systemic disease']});
+  }
+  // deduplicate by title
+  const seen=new Set(); candidates=candidates.filter(c=>{if(seen.has(c.title))return false;seen.add(c.title);return true;});
+  // smoking / comorbidity modifiers
+  if(smoke.includes('current') && candidates.some(c=>c.title.includes('Respiratory')||c.title.includes('COPD')||c.title.includes('Pneumonia'))){
+    // boost
+  }
+
+  const cont=document.getElementById('dxContainer');
+  cont.innerHTML = candidates.slice(0,4).map((c,i)=>`
+    <div class="border ${i===0?'border-teal-300 bg-teal-50':'border-slate-200 bg-white'} rounded-xl p-3">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold px-2 py-0.5 rounded-full ${i===0?'bg-teal-700 text-white':'bg-slate-100 text-slate-700'}">${i===0?'PROVISIONAL':'DIFFERENTIAL '+(i)}</span>
+        <span class="text-xs text-slate-500">${c.why}</span>
+      </div>
+      <p class="font-semibold text-sm mt-1">${c.title}</p>
+      <p class="text-xs text-slate-600 mt-1"><span class="font-semibold">Differentials:</span> ${c.diff.join(' • ')}</p>
+    </div>
+  `).join('') + `<p class="text-xs text-slate-500 mt-2">Note: This is an academic aid. Final diagnosis requires examination (general, systemic), vitals, and investigations (CBC, CXR, ECG, etc.). Boloor emphasizes: never anchor on history alone.</p>`;
+
+  return candidates;
+}
+
+// Presentation generation
+function generatePresentation(){
+  const name = document.getElementById('p_name').value || '[Name]';
+  const age = document.getElementById('p_age').value || '--';
+  const sex = document.getElementById('p_sex').value || '--';
+  const handed = document.getElementById('p_handed').value;
+  const occupation = document.getElementById('p_occupation').value || '--';
+  const religion = document.getElementById('p_religion').value || '--';
+  const marital = document.getElementById('p_marital').value;
+  const address = document.getElementById('p_address').value || '--';
+  const informant = document.getElementById('p_informant').value;
+  const reliability = document.getElementById('p_reliability').value;
+  const dateStr = document.getElementById('p_date').value ? new Date(document.getElementById('p_date').value).toLocaleString() : new Date().toLocaleString();
+
+  const ccs = getCCs();
+  const ccBaseline = document.getElementById('cc_baseline').value;
+  const ccBaselineDetails = document.getElementById('cc_baseline_details').value;
+
+  const hpiVals = {};
+  document.querySelectorAll('[data-hpi]').forEach(el=>{hpiVals[el.getAttribute('data-hpi')] = el.value;});
+  const hpi_onset = document.getElementById('hpi_onset').value;
+  const hpi_course = document.getElementById('hpi_course').value;
+  const hpi_sev = document.getElementById('hpi_severity').value;
+  const hpi_temporal = document.getElementById('hpi_temporal').value;
+  const hpi_agg = document.getElementById('hpi_agg').value;
+  const hpi_relief = document.getElementById('hpi_relief').value;
+  const hpi_treat = document.getElementById('hpi_treatment').value;
+
+  const pastComorbid = [...document.querySelectorAll('.comorbidChk:checked')].map(c=>c.value).join(', ') || 'No known comorbidities';
+  const pastOther = document.getElementById('past_other_comorbid').value;
+  const pastChild = document.getElementById('past_childhood').value || '—';
+  const pastHosp = document.getElementById('past_hosp').value || 'No significant hospitalizations/surgeries/transfusions';
+  const pastDrugs = document.getElementById('past_drugs').value || '—';
+  const pastAllergy = document.getElementById('past_allergy').value || 'No known drug/food allergy';
+  const pastVaccine = document.getElementById('past_vaccine').value;
+
+  const perDiet = document.getElementById('per_diet').value;
+  const perApp = document.getElementById('per_appetite').value;
+  const perSleep = document.getElementById('per_sleep').value;
+  const perBowel = document.getElementById('per_bowel').value;
+  const perBladder = document.getElementById('per_bladder').value;
+  const perWt = document.getElementById('per_weight').value;
+  const smokeStatus = document.getElementById('per_smoke_status').value;
+  const smokeDetails = document.getElementById('per_smoke_details').value;
+  const alcStatus = document.getElementById('per_alcohol_status').value;
+  const alcDetails = document.getElementById('per_alcohol_details').value;
+  const otherAdd = document.getElementById('per_other_addiction').value;
+  const occupExp = document.getElementById('per_occup_exp').value || '—';
+  const exp = document.getElementById('per_exposure').value || '—';
+  const exercise = document.getElementById('per_exercise').value || '—';
+
+  const isFemale = sex==='Female';
+  const mensMenarche = document.getElementById('mens_menarche').value;
+  const mensCycle = document.getElementById('mens_cycle').value;
+  const mensLmp = document.getElementById('mens_lmp').value;
+  const mensFlow = document.getElementById('mens_flow').value;
+  const mensMenopause = document.getElementById('mens_menopause').value;
+  const obsG = document.getElementById('obs_g').value;
+  const obsP = document.getElementById('obs_p').value;
+  const obsL = document.getElementById('obs_l').value;
+  const obsA = document.getElementById('obs_a').value;
+  const obsDetails = document.getElementById('obs_details').value;
+
+  const famHist = document.getElementById('fam_history').value || '—';
+  const famConsan = document.getElementById('fam_consan').value;
+  const famSimilar = document.getElementById('fam_similar').value || '—';
+  const famSes = document.getElementById('fam_ses').value;
+  const famHousing = document.getElementById('fam_housing').value || '—';
+  const famSupport = document.getElementById('fam_support').value || '—';
+
+  const rosChecked = [...document.querySelectorAll('.rosChk:checked')].map(c=>c.value);
+  const rosOther = document.getElementById('ros_other').value;
+
+  const dxManual = document.getElementById('dx_manual').value;
+
+  // Build presentation HTML
+  let html = '';
+
+  html += `<div class="text-xs text-slate-500 border border-slate-200 rounded-lg p-2 bg-slate-50">Informant: <b>${informant}</b> • Reliability: <b>${reliability}</b> • Date: ${dateStr}</div>`;
+
+  html += `<div class="mt-3">
+    <p class="font-bold text-slate-900">Patient Particulars</p>
+    <p class="mt-1">${name}, ${age} years, ${sex}, ${handed}, ${marital}, ${occupation}, ${religion}, residing at ${address}.</p>
+  </div>`;
+
+  html += `<div>
+    <p class="font-bold text-slate-900">Chief Complaints</p>
+    ${ccs.length? `<ol class="list-decimal ml-5 mt-1 space-y-0.5">${ccs.map(c=>`<li>${c.text} — <b>${c.duration || '?'} ${c.unit}</b> (${c.onset}, ${c.progress})</li>`).join('')}</ol>` : `<p class="text-slate-400 italic">No chief complaints entered yet</p>`}
+    ${ccBaseline==='yes' ? `<p class="mt-1 text-xs bg-amber-50 border border-amber-200 rounded-lg p-2">⚠️ Aggravation of baseline chronic symptoms: ${ccBaselineDetails || '[details not entered]'}</p>` : ``}
+  </div>`;
+
+  // HPI narrative
+  html += `<div>
+    <p class="font-bold text-slate-900">History of Present Illness</p>
+    <div class="mt-1">
+      <p class="italic text-slate-700">${hpiVals['narrative'] ? hpiVals['narrative'] : (ccs.length? `Patient was apparently well ${ccs[0].duration ? ccs[0].duration+' '+ccs[0].unit+' ago' : 'until recently'} when he/she developed ${ccs.map(c=>c.text).join(', ')}.` : '—')}</p>
+      <ul class="list-disc ml-5 mt-2 space-y-1 text-xs">`;
+  // Add HPI specifics
+  let hpiItems=[];
+  if(hpi_onset) hpiItems.push(`Onset: ${hpi_onset}`);
+  if(hpi_course) hpiItems.push(`Course: ${hpi_course}`);
+  if(hpi_sev) hpiItems.push(`Severity: ${hpi_sev}/10`);
+  if(hpi_temporal) hpiItems.push(`Temporal pattern: ${hpi_temporal}`);
+  if(hpi_agg) hpiItems.push(`Aggravated by: ${hpi_agg}`);
+  if(hpi_relief) hpiItems.push(`Relieved by: ${hpi_relief}`);
+  if(hpi_treat) hpiItems.push(`Treatment taken & response: ${hpi_treat}`);
+  // adaptive hpi values
+  Object.entries(hpiVals).forEach(([k,v])=>{
+    if(!v || k==='narrative' || k==='generic' || k==='assoc_generic') return;
+    // prettify key
+    let label = k.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+    hpiItems.push(`${label}: ${v}`);
+  });
+  if(hpiVals['generic']) hpiItems.push(`Additional: ${hpiVals['generic']}`);
+  if(hpiVals['assoc_generic']) hpiItems.push(`Relevant negatives: ${hpiVals['assoc_generic']}`);
+
+  if(hpiItems.length===0) hpiItems.push('No detailed HPI entered — please fill adaptive HPI section.');
+  html += hpiItems.map(it=>`<li>${it}</li>`).join('');
+  html += `</ul></div></div>`;
+
+  html += `<div>
+    <p class="font-bold text-slate-900">Past History</p>
+    <p class="mt-1">Comorbidities: ${pastComorbid}${pastOther? ' ('+pastOther+')' : ''}. Childhood: ${pastChild}. Hospital/Surgery/Transfusion: ${pastHosp}.</p>
+    <p class="mt-1">Drug history: ${pastDrugs}. Allergy: ${pastAllergy}. Immunization: ${pastVaccine}.</p>
+  </div>`;
+
+  html += `<div>
+    <p class="font-bold text-slate-900">Personal History</p>
+    <p class="mt-1">Diet: ${perDiet}, Appetite: ${perApp}, Sleep: ${perSleep}, Bowel: ${perBowel}, Bladder: ${perBladder}, Weight: ${perWt}.</p>
+    <p>Smoking: ${smokeStatus}${smokeDetails? ' — '+smokeDetails:''}; Alcohol: ${alcStatus}${alcDetails? ' — '+alcDetails:''}; Other: ${otherAdd || 'nil'}.</p>
+    <p>Occupational exposure: ${occupExp}. Travel/contact/pets/high-risk: ${exp}. Exercise: ${exercise}.</p>
+  </div>`;
+
+  if(isFemale){
+    html += `<div class="border border-pink-200 rounded-xl p-2 bg-pink-50/50">
+      <p class="font-bold text-pink-900">Menstrual & Obstetric History</p>
+      <p class="mt-1">Menarche at ${mensMenarche||'--'} yrs, Cycle: ${mensCycle}, LMP: ${mensLmp||'--'}, Flow: ${mensFlow||'--'}. ${mensMenopause? 'Menopause: '+mensMenopause+'.' : ''}</p>
+      <p>Obstetric: G${obsG||0} P${obsP||0} L${obsL||0} A${obsA||0}. ${obsDetails||''}</p>
+    </div>`;
+  }
+
+  html += `<div>
+    <p class="font-bold text-slate-900">Family & Socioeconomic History</p>
+    <p class="mt-1">${famHist} Consanguinity: ${famConsan}. Similar illness in family: ${famSimilar}.</p>
+    <p>Ses: ${famSes}, Housing: ${famHousing}, Support: ${famSupport}.</p>
+  </div>`;
+
+  html += `<div>
+    <p class="font-bold text-slate-900">Review of Systems</p>
+    <p class="mt-1">${rosChecked.length? rosChecked.join(' • ') : 'No ROS items ticked (all systems apparently normal).'} ${rosOther? '<br>Additional: '+rosOther : ''}</p>
+  </div>`;
+
+  // Diagnosis summary
+  const dx = generateDiagnosis();
+  html += `<div class="border-t border-slate-900 pt-3 mt-2">
+    <p class="font-bold text-slate-900">Provisional Diagnosis & Differentials</p>
+    <div class="mt-2 space-y-1.5">`;
+  dx.slice(0,3).forEach((d,i)=>{
+    html+=`<div class="${i===0?'bg-teal-50 border-teal-300':'bg-slate-50 border-slate-200'} border rounded-lg p-2"><p class="text-xs font-bold ${i===0?'text-teal-800':'text-slate-700'}">${i===0?'★ Provisional':'○ Differential '+(i)}: ${d.title}</p><p class="text-xs text-slate-600 mt-0.5">${d.why} | Differentials: ${d.diff.join(' • ')}</p></div>`;
+  });
+  if(dxManual) html+=`<p class="text-xs mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg"><b>Clinician impression:</b> ${dxManual}</p>`;
+  html+=`</div><p class="text-xs text-slate-500 mt-2">Plan: Detailed general & systemic examination → vitals → focused investigations (as per provisional) → management. History to be correlated with examination.</p></div>`;
+
+  html += `<div class="text-center text-xs text-slate-400 pt-3 border-t border-dashed mt-3">— End of History — • Prepared by ClinHistory for ${name} • ${dateStr}</div>`;
+
+  document.getElementById('presentationContent').innerHTML = html;
+  saveToStorage();
+}
+
+function copyPresentation(){
+  generatePresentation();
+  const text = document.getElementById('presentationContent').innerText;
+  navigator.clipboard.writeText(text).then(()=>alert('Presentation copied to clipboard! Paste in Word / case sheet.'));
+}
+
+function saveToStorage(){
+  const data = {};
+  document.querySelectorAll('input,select,textarea').forEach(el=>{
+    if(el.type==='checkbox') data[el.id+ '|' + el.value] = el.checked;
+    else if(el.id) data[el.id]=el.value;
+    else if(el.getAttribute('data-cc') || el.getAttribute('data-hpi')){
+      // handled via CC reconstruction? skip for now
+    }
+  });
+  // save CCs separately
+  data['__ccs'] = JSON.stringify(getCCs());
+  data['__cur'] = cur;
+  // hpi dynamic
+  const hpiData={};
+  document.querySelectorAll('[data-hpi]').forEach(el=>hpiData[el.getAttribute('data-hpi')]=el.value);
+  data['__hpi']=JSON.stringify(hpiData);
+  // ros
+  data['__ros']=JSON.stringify([...document.querySelectorAll('.rosChk:checked')].map(c=>c.value));
+  try{localStorage.setItem('clinHistory_v2', JSON.stringify(data));}catch(e){}
+}
+function loadFromStorage(){
+  try{
+    const raw=localStorage.getItem('clinHistory_v2');
+    if(!raw) return;
+    const data=JSON.parse(raw);
+    Object.entries(data).forEach(([k,v])=>{
+      if(k.startsWith('__')) return;
+      if(k.includes('|')){
+        const [id,val]=k.split('|');
+        document.querySelectorAll(`input[value="${val}"]`).forEach(cb=>{
+          if(cb.type==='checkbox') cb.checked=v;
+        });
+        return;
+      }
+      const el=document.getElementById(k);
+      if(el) el.value=v;
+    });
+    if(data['__ccs']){
+      try{
+        const ccs=JSON.parse(data['__ccs']);
+        document.getElementById('ccList').innerHTML='';
+        ccCount=0;
+        ccs.forEach(c=>{
+          addCC();
+          const last = document.querySelector('#ccList > div:last-child');
+          last.querySelector('[data-cc="text"]').value=c.text;
+          last.querySelector('[data-cc="duration"]').value=c.duration;
+          last.querySelector('[data-cc="unit"]').value=c.unit;
+          last.querySelector('[data-cc="onset"]').value=c.onset;
+          last.querySelector('[data-cc="progress"]').value=c.progress;
+        });
+      }catch(e){}
+    }
+    if(data['__cur']){
+      cur = Math.min(8, Math.max(1, parseInt(data['__cur'])));
+      document.querySelectorAll('.step-panel').forEach(p=>p.classList.add('hidden'));
+      document.querySelector(`[data-step="${cur}"]`).classList.remove('hidden');
+      updateNav(); renderStepper();
+    }
+    if(data['__hpi']){
+      // will be restored after generateHPI builds DOM
+      setTimeout(()=>{
+        try{
+          const hpi=JSON.parse(data['__hpi']);
+          Object.entries(hpi).forEach(([hk,hv])=>{
+            const el=document.querySelector(`[data-hpi="${hk}"]`);
+            if(el) el.value=hv;
+          });
+          generatePresentation();
+        }catch(e){}
+      },300);
+    }
+    toggleMenstrualSection();
+  }catch(e){}
+}
+
+function resetAll(){
+  if(!confirm('Clear all entered data?')) return;
+  localStorage.removeItem('clinHistory_v2');
+  location.reload();
+}
+
+// init
+init();
+</script>
+</body>
+</html>
